@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import spaceapi
 import argparse
 import json
@@ -7,7 +8,7 @@ def resolve(obj, path):
         obj = obj[p]
     return str(obj)
 
-def print_objs(headers, objects):
+def print_objs(headers, objects, subs=[]):
     for h in headers:
         print(f"{h:<{headers[h].get('width', 15)}}",end="")
     print()
@@ -15,6 +16,16 @@ def print_objs(headers, objects):
         for h in headers:
             print(f"{resolve(obj,headers[h]['path']):<{headers[h].get('width', 15)}}", end="")
         print()
+        for sub_key in subs:
+            sub_objects = obj[sub_key]
+            for subobj in sub_objects:
+                print("  ", end="")
+                subheaders = subs[sub_key]
+                for subh in subheaders:
+                    print(f"{resolve(subobj, subheaders[subh]['path']):<{subheaders[subh].get('width', 15)}}", end="")
+                print()
+            print()
+        
 
 def iships(options):
     if options.json:
@@ -39,12 +50,9 @@ def icontracts(options):
         print(json.dumps(spaceapi.contracts()))
         return
     headers = {
-                "Id": {
-                    "path": ("id",),
+                "System": {
+                    "path": ("symbol",),
                     "width": 30
-                },
-                "Faction": {
-                    "path": ("factionSymbol",)
                 },
                 "Deadline": {
                     "path": ("terms", "deadline"),
@@ -68,28 +76,42 @@ def isystems(options):
         return
     headers = {
                 "Id": {
-                    "path": ("id",),
+                    "path": ("symbol",),
                     "width": 30
                 },
-                "Faction": {
-                    "path": ("factionSymbol",)
-                },
-                "Deadline": {
-                    "path": ("terms", "deadline"),
+                "Type": {
+                    "path": ("type",),
                     "width": 30
                 },
-                "Accept ($)": {
-                    "path": ("terms", "payment", "onAccepted")
+                "X": {
+                    "path": ("x",),
+                    "width": 6,
                 },
-                "Fulfill ($)": {
-                    "path": ("terms", "payment", "onFulfilled")
-                },
-                "Accepted": {
-                   "path": ("accepted",) 
+                "Y": {
+                    "path": ("y",),
+                    "width": 6,
                 }
-            }
-    print_objs(headers, spaceapi.contracts())
-
+        }
+    wayheaders = {
+                "Id": {
+                    "path": ("symbol",),
+                    "width": 28
+                },
+                "Type": {
+                    "path": ("type",),
+                    "width": 30
+                },
+                "X": {
+                    "path": ("x",),
+                    "width": 6,
+                },
+                "Y": {
+                    "path": ("y",),
+                    "width": 6,
+                }
+        }
+    print_objs(headers, spaceapi.systems(), subs={
+        "waypoints": wayheaders})
 
 def iaccept(options):
     print(json.dumps(spaceapi.accept(options.contract_id)))
@@ -115,8 +137,10 @@ def main():
     ships.set_defaults(command=isystems)
     ships.add_argument("--json", action="store_true")
 
-
     options = parser.parse_args()
+    if hasattr(options, "command") == None:
+        parser.print_help()
+        return
     options.command(options)
 
 main()
