@@ -3,10 +3,10 @@ import spaceapi
 import argparse
 import json
 
-def resolve(obj, path):
+def resolve(obj, path, f=str):
     for p in path:
         obj = obj[p]
-    return str(obj)
+    return f(obj)
 
 def print_objs(headers, objects, subs=[]):
     for h in headers:
@@ -14,7 +14,9 @@ def print_objs(headers, objects, subs=[]):
     print()
     for obj in objects["data"]:
         for h in headers:
-            print(f"{resolve(obj,headers[h]['path']):<{headers[h].get('width', 15)}}", end="")
+            val = resolve(obj,headers[h]['path'], headers[h].get('disp', str))
+            width = headers[h].get('width', 15)
+            print(f"{val:<{width}}", end="")
         print()
         for sub_key in subs:
             sub_objects = obj[sub_key]
@@ -22,7 +24,9 @@ def print_objs(headers, objects, subs=[]):
                 print("  ", end="")
                 subheaders = subs[sub_key]
                 for subh in subheaders:
-                    print(f"{resolve(subobj, subheaders[subh]['path']):<{subheaders[subh].get('width', 15)}}", end="")
+                    val = resolve(subobj, subheaders[subh]['path'], subheaders[subh].get('disp', str))
+                    width = subheaders[subh].get('width', 15) 
+                    print(f"{val:<{width}}", end="")
                 print()
             print()
         
@@ -90,6 +94,10 @@ def isystems(options):
                 "Y": {
                     "path": ("y",),
                     "width": 6,
+                },
+                "Factions": {
+                    "path": ("factions",),
+                    "disp": (lambda x: ",".join(x) if x else "Unclaimed")
                 }
         }
     wayheaders = {
@@ -113,6 +121,9 @@ def isystems(options):
     print_objs(headers, spaceapi.systems(), subs={
         "waypoints": wayheaders})
 
+def iquery(options):
+    print(json.dumps(spaceapi.query(options.path)))
+
 def iaccept(options):
     print(json.dumps(spaceapi.accept(options.contract_id)))
 
@@ -120,6 +131,10 @@ def main():
     parser = argparse.ArgumentParser()
 
     commands = parser.add_subparsers(title="commands")
+
+    query = commands.add_parser("query")
+    query.set_defaults(command=iquery)
+    query.add_argument("path", nargs="*")
     
     contracts = commands.add_parser("contracts")
     contracts.set_defaults(command=icontracts)

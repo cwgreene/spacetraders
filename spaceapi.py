@@ -27,3 +27,6 @@ def systems():
 
 def accept(contract_id):
     return post_apicall(f"/my/contracts/{contract_id}/accept",data={}).json()
+
+def query(args):
+    return get_apicall("/".join(args)).json()
